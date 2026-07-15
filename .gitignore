@@ -1,0 +1,9 @@
+node_modules/
+browser-profile/
+logs/
+database/
+temp/
+config/config.json
+
+.DS_Store
+**/.DS_Store
