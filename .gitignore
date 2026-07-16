@@ -1,7 +1,7 @@
 node_modules/
 browser-profile/
 logs/
-database/
+/database/
 temp/
 config/config.json
 

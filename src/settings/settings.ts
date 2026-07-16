@@ -7,9 +7,9 @@ export const PROJECT_ROOT = path.resolve(import.meta.dir, "..", "..");
 const CONFIG_DIR = path.join(PROJECT_ROOT, "config");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 
-/** The permanent default vault destination: ~/My Second Brain/05 Claude Chats/ */
+/** The permanent default vault destination: ~/My Second Brain/05 Claude Stuff/ */
 export function defaultVaultPath(): string {
-  return path.join(os.homedir(), "My Second Brain", "05 Claude Chats");
+  return path.join(os.homedir(), "My Second Brain", "05 Claude Stuff");
 }
 
 export function defaultSettings(): Settings {

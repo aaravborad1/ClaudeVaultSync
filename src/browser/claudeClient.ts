@@ -36,6 +36,7 @@ export class ClaudeClient {
       const result = await page.evaluate(async (url: string) => {
         const res = await fetch(url, {
           headers: { accept: "application/json" },
+          cache: "no-store",
         });
         return { status: res.status, body: await res.text() };
       }, `${BASE}${path}`);
@@ -54,7 +55,7 @@ export class ClaudeClient {
     const page = await this.ensureOnClaude();
     const url = path.startsWith("http") ? path : `${BASE}${path}`;
     const result = await page.evaluate(async (u: string) => {
-      const res = await fetch(u);
+      const res = await fetch(u, { cache: "no-store" });
       if (res.status !== 200) return null;
       const buf = await res.arrayBuffer();
       const bytes = new Uint8Array(buf);

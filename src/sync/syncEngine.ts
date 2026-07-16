@@ -1,8 +1,9 @@
+import path from "node:path";
 import type { ClaudeClient } from "../browser/claudeClient";
 import { NotLoggedInError } from "../browser/claudeClient";
 import type { SyncDatabase } from "../database/sqlite";
 import type { Vault } from "../obsidian/vault";
-import type { ConversationSummary, SyncRunResult } from "../models/types";
+import type { SyncRunResult } from "../models/types";
 import { renderNote } from "../markdown/markdownWriter";
 import { possiblyChanged, contentChanged } from "./compareHashes";
 import { downloadConversation } from "./downloadConversation";
@@ -73,25 +74,31 @@ export class SyncEngine {
           const note = renderNote(conversation, attachmentLinks);
           const { hash } = contentChanged(note.hashSource, stored);
 
-          // Decide the note's path.
+          // Disk is the source of truth for where a note currently lives —
+          // the user may have manually filed it anywhere. If found, update it
+          // in place (renaming the file only, never moving it to a different
+          // folder). Only conversations with no existing note anywhere get a
+          // fresh path, sorted into Named/Untitled Claude Chats by title.
+          const foundPath = this.vault.findExisting(existing, conversation.id);
           let filePath: string;
-          if (stored) {
-            // Rename detection: title changed → the note moves with it.
-            const desiredPath = this.resolveNotePath(conversation);
-            if (stored.file_path !== desiredPath) {
-              this.vault.renameNote(stored.file_path, desiredPath);
-              log.info(
-                { from: stored.file_path, to: desiredPath },
-                "Conversation renamed"
-              );
+          if (foundPath) {
+            const desiredName = this.vault.noteFileName(
+              conversation.title,
+              conversation.createdAt,
+              conversation.id
+            );
+            const desiredPath = path.join(path.dirname(foundPath), desiredName);
+            if (foundPath !== desiredPath) {
+              this.vault.renameNote(foundPath, desiredPath);
+              log.info({ from: foundPath, to: desiredPath }, "Conversation renamed");
             }
             filePath = desiredPath;
           } else {
-            // New to us: adopt an existing note for this conversation if one
-            // is already in the vault, otherwise pick a fresh path.
-            filePath =
-              this.vault.findExisting(existing, conversation.id) ??
-              this.resolveNotePath(conversation);
+            filePath = this.vault.notePathForNew(
+              conversation.title,
+              conversation.createdAt,
+              conversation.id
+            );
           }
 
           const wrote = this.vault.writeIfChanged(filePath, note.content);
@@ -146,19 +153,6 @@ export class SyncEngine {
     } finally {
       this.running = false;
     }
-  }
-
-  /** Pick a note path for a conversation. */
-  private resolveNotePath(conversation: {
-    id: string;
-    title: string;
-    createdAt: string | null;
-  }): string {
-    return this.vault.notePath(
-      conversation.title,
-      conversation.createdAt,
-      conversation.id
-    );
   }
 
   private finish(
